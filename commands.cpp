@@ -28,6 +28,15 @@
  * as that of the covered work.
  */
 
+#ifdef WIN32
+#define F_OK 00
+#define access _access
+#undef min
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
+
 #include "commands.hpp"
 #include "crypto.hpp"
 #include "util.hpp"
@@ -35,7 +44,6 @@
 #include "gpg.hpp"
 #include "parse_options.hpp"
 #include "coprocess.hpp"
-#include <unistd.h>
 #include <stdint.h>
 #include <algorithm>
 #include <string>
@@ -807,7 +815,7 @@ int clean (int argc, const char** argv)
 	const unsigned char*	file_data = reinterpret_cast<const unsigned char*>(file_contents.data());
 	size_t			file_data_len = file_contents.size();
 	while (file_data_len > 0) {
-		const size_t	buffer_len = std::min(sizeof(buffer), file_data_len);
+		const size_t	buffer_len = (std::min)(sizeof(buffer), file_data_len);
 		aes.process(file_data, reinterpret_cast<unsigned char*>(buffer), buffer_len);
 		std::cout.write(buffer, buffer_len);
 		file_data += buffer_len;

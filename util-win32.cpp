@@ -34,6 +34,8 @@
 #include <windows.h>
 #include <vector>
 #include <cstring>
+#include <string>
+#include "util.hpp"
 
 std::string System_error::message () const
 {
