@@ -125,7 +125,7 @@ static int help (int argc, const char** argv)
 	return 0;
 }
 
-static int version (int argc, const char** argv)
+static int version (int, const char**)
 {
 	print_version(std::cout);
 	return 0;

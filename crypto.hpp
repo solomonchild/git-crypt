@@ -67,7 +67,7 @@ public:
 
 class Aes_ctr_encryptor {
 public:
-	enum {
+	enum : unsigned long long {
 		NONCE_LEN	= 12,
 		KEY_LEN		= AES_KEY_LEN,
 		BLOCK_LEN	= 16,

@@ -253,7 +253,7 @@ void		Key_file::store (std::ostream& out) const
 	write_be32(out, FORMAT_VERSION);
 	if (!key_name.empty()) {
 		write_be32(out, HEADER_FIELD_KEY_NAME);
-		write_be32(out, key_name.size());
+		write_be32(out, uint32_t(key_name.size()));
 		out.write(key_name.data(), key_name.size());
 	}
 	write_be32(out, HEADER_FIELD_END);

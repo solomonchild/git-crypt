@@ -84,10 +84,10 @@ uint32_t	load_be32 (const unsigned char* p)
 
 void		store_be32 (unsigned char* p, uint32_t i)
 {
-	p[3] = i; i >>= 8;
-	p[2] = i; i >>= 8;
-	p[1] = i; i >>= 8;
-	p[0] = i;
+	p[3] = i & 0xff; i >>= 8;
+	p[2] = i & 0xff; i >>= 8;
+	p[1] = i & 0xff; i >>= 8;
+	p[0] = i & 0xff;
 }
 
 bool		read_be32 (std::istream& in, uint32_t& i)
@@ -113,7 +113,7 @@ void*		explicit_memset (void* s, int c, std::size_t n)
 	volatile unsigned char* p = reinterpret_cast<unsigned char*>(s);
 
 	while (n--) {
-		*p++ = c;
+		*p++ = c&0xff;
 	}
 
 	return s;

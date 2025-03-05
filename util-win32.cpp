@@ -36,6 +36,9 @@
 #include <cstring>
 #include <string>
 #include "util.hpp"
+#ifdef WIN32
+#	define unlink _unlink
+#endif
 
 std::string System_error::message () const
 {
@@ -116,7 +119,7 @@ std::string our_exe_path ()
 	std::vector<char>	buffer(128);
 	size_t			len;
 
-	while ((len = GetModuleFileNameA(nullptr, &buffer[0], buffer.size())) == buffer.size()) {
+	while ((len = GetModuleFileNameA(nullptr, &buffer[0], DWORD(buffer.size()))) == buffer.size()) {
 		// buffer may have been truncated - grow and try again
 		buffer.resize(buffer.size() * 2);
 	}
@@ -174,7 +177,7 @@ static void	init_std_streams_platform ()
 	_setmode(_fileno(stdout), _O_BINARY);
 }
 
-void create_protected_file (const char* path) // TODO
+void create_protected_file (const char*) // TODO
 {
 }
 

@@ -29,12 +29,12 @@
  */
 
 #ifdef WIN32
-#define F_OK 00
-#define access _access
-#undef min
-#include <io.h>
+#	define F_OK 00
+#	include <io.h>
+#	define access _access
+#	undef min
 #else
-#include <unistd.h>
+#	include <unistd.h>
 #endif
 
 #include "commands.hpp"
@@ -440,9 +440,9 @@ static std::pair<std::string, std::string> get_file_attributes (const std::strin
 }
 
 // returns filter and diff attributes as a pair
-static std::pair<std::string, std::string> get_file_attributes (const std::string& filename, std::ostream& check_attr_stdin, std::istream& check_attr_stdout)
+static std::pair<std::string, std::string> get_file_attributes (const std::string& fname, std::ostream& check_attr_stdin, std::istream& check_attr_stdout)
 {
-	check_attr_stdin << filename << '\0' << std::flush;
+	check_attr_stdin << fname << '\0' << std::flush;
 
 	std::string			filter_attr;
 	std::string			diff_attr;
@@ -1337,7 +1337,7 @@ void help_rm_gpg_user (std::ostream& out)
 	out << "    -n, --no-commit             Don't automatically commit" << std::endl;
 	out << std::endl;
 }
-int rm_gpg_user (int argc, const char** argv) // TODO
+int rm_gpg_user (int, const char**) // TODO
 {
 	std::clog << "Error: rm-gpg-user is not yet implemented." << std::endl;
 	return 1;
@@ -1348,7 +1348,7 @@ void help_ls_gpg_users (std::ostream& out)
 	//     |--------------------------------------------------------------------------------| 80 chars
 	out << "Usage: git-crypt ls-gpg-users" << std::endl;
 }
-int ls_gpg_users (int argc, const char** argv) // TODO
+int ls_gpg_users (int, const char**) // TODO
 {
 	// Sketch:
 	// Scan the sub-directories in .git-crypt/keys, outputting something like this:
@@ -1499,7 +1499,7 @@ void help_refresh (std::ostream& out)
 	//     |--------------------------------------------------------------------------------| 80 chars
 	out << "Usage: git-crypt refresh" << std::endl;
 }
-int refresh (int argc, const char** argv) // TODO: do a force checkout, much like in unlock
+int refresh (int, const char**) // TODO: do a force checkout, much like in unlock
 {
 	std::clog << "Error: refresh is not yet implemented." << std::endl;
 	return 1;
