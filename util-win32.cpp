@@ -135,15 +135,16 @@ int exit_status (int status)
 	return status;
 }
 
-void	touch_file (const std::string& filename)
+void	touch_file (const std::wstring& filename)
 {
-	HANDLE	fh = CreateFileA(filename.c_str(), FILE_WRITE_ATTRIBUTES, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
+	HANDLE	fh = CreateFileW(filename.c_str(), FILE_WRITE_ATTRIBUTES, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
 	if (fh == INVALID_HANDLE_VALUE) {
 		DWORD	error = GetLastError();
 		if (error == ERROR_FILE_NOT_FOUND) {
 			return;
 		} else {
-			throw System_error("CreateFileA", filename, error);
+			std::string s (filename.begin(), filename.end());
+			throw System_error("CreateFileW", s, error);
 		}
 	}
 	SYSTEMTIME	system_time;
@@ -154,7 +155,8 @@ void	touch_file (const std::string& filename)
 	if (!SetFileTime(fh, nullptr, nullptr, &file_time)) {
 		DWORD	error = GetLastError();
 		CloseHandle(fh);
-		throw System_error("SetFileTime", filename, error);
+		std::string s (filename.begin(), filename.end());
+		throw System_error("SetFileTime", s, error);
 	}
 	CloseHandle(fh);
 }

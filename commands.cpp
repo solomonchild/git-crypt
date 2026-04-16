@@ -65,6 +65,27 @@ enum {
 	GIT_CHECKOUT_BATCH_SIZE = 100
 };
 
+static std::string utf8_to_gb(const char* str)
+{
+	std::string result;
+	WCHAR* strSrc;
+	LPSTR szRes;
+
+	int i = MultiByteToWideChar(CP_UTF8, 0, str, -1, NULL, 0);
+	strSrc = new WCHAR[i + 1];
+	MultiByteToWideChar(CP_UTF8, 0, str, -1, strSrc, i);
+
+	i = WideCharToMultiByte(CP_ACP, 0, strSrc, -1, NULL, 0, NULL, NULL);
+	szRes = new CHAR[i + 1];
+	WideCharToMultiByte(CP_ACP, 0, strSrc, -1, szRes, i, NULL, NULL);
+
+	result = szRes;
+	delete[]strSrc;
+	delete[]szRes;
+
+	return result;
+}
+
 static std::string attribute_name (const char* key_name)
 {
 	if (key_name) {
@@ -566,6 +587,7 @@ static void get_encrypted_files (std::vector<std::string>& files, const char* ke
 		std::string		filename;
 		*ls_files_stdout >> mode >> object_id >> stage >> std::ws;
 		std::getline(*ls_files_stdout, filename, '\0');
+		filename = utf8_to_gb(filename.c_str()).c_str();
 
 		if (is_git_file_mode(mode)) {
 			std::string	filter_attribute;
@@ -1102,7 +1124,8 @@ int unlock (int argc, const char** argv)
 	// 4. Check out the files that are currently encrypted.
 	// Git won't check out a file if its mtime hasn't changed, so touch every file first.
 	for (std::vector<std::string>::const_iterator file(encrypted_files.begin()); file != encrypted_files.end(); ++file) {
-		touch_file(*file);
+		auto filename = utf8_to_gb(file->c_str()).c_str();
+		touch_file(filename);
 	}
 	if (!git_checkout(encrypted_files)) {
 		std::clog << "Error: 'git checkout' failed" << std::endl;
@@ -1197,7 +1220,9 @@ int lock (int argc, const char** argv)
 	// 3. Check out the files that are currently decrypted but should be encrypted.
 	// Git won't check out a file if its mtime hasn't changed, so touch every file first.
 	for (std::vector<std::string>::const_iterator file(encrypted_files.begin()); file != encrypted_files.end(); ++file) {
-		touch_file(*file);
+
+		auto filename = utf8_to_gb(file->c_str()).c_str();
+		touch_file(filename);
 	}
 	if (!git_checkout(encrypted_files)) {
 		std::clog << "Error: 'git checkout' failed" << std::endl;
@@ -1632,6 +1657,7 @@ int status (int argc, const char** argv)
 		}
 		output >> std::ws;
 		std::getline(output, filename, '\0');
+		filename = utf8_to_gb(filename.c_str()).c_str();
 
 		// TODO: get file attributes en masse for efficiency... unfortunately this requires machine-parseable output from git check-attr to be workable, and this is only supported in Git 1.8.5 and above (released 27 Nov 2013)
 		const std::pair<std::string, std::string> file_attrs(get_file_attributes(filename));
