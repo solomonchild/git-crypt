@@ -542,6 +542,31 @@ static bool is_git_file_mode (const std::string& mode)
 	return (std::strtoul(mode.c_str(), nullptr, 8) & 0170000) == 0100000;
 }
 
+static std::wstring ToWString(const std::string& utf8) {
+    if (utf8.empty()) return L"";
+    
+    // Pass utf8.data() and utf8.size() to be explicit
+    int len = MultiByteToWideChar(CP_UTF8, 0, utf8.data(), (int)utf8.size(), nullptr, 0);
+    if (len <= 0) return L"";
+
+    std::wstring wstr(len, 0);
+    MultiByteToWideChar(CP_UTF8, 0, utf8.data(), (int)utf8.size(), &wstr[0], len);
+    
+    return wstr;
+}
+
+static std::string ToUtf8(wchar_t* utf8) {
+    if (!utf8) return "";
+
+	int len = WideCharToMultiByte(CP_UTF8, 0, utf8, -1, nullptr, 0, 0, 0);
+    if (len <= 0) return "";
+
+    std::string wstr(len-1, 0);
+	WideCharToMultiByte(CP_UTF8, 0, utf8, -1, &wstr[0], len, 0, 0);
+    
+    return wstr;
+}
+
 static void get_encrypted_files (std::vector<std::string>& files, const char* key_name)
 {
 	// git ls-files -cz -- path_to_top
@@ -587,7 +612,6 @@ static void get_encrypted_files (std::vector<std::string>& files, const char* ke
 		std::string		filename;
 		*ls_files_stdout >> mode >> object_id >> stage >> std::ws;
 		std::getline(*ls_files_stdout, filename, '\0');
-		filename = utf8_to_gb(filename.c_str()).c_str();
 
 		if (is_git_file_mode(mode)) {
 			std::string	filter_attribute;
@@ -954,9 +978,14 @@ int diff (int argc, const char** argv)
 	load_key(key_file, key_name, key_path, legacy_key_path);
 
 	// Open the file
-	std::ifstream		in(filename, std::fstream::binary);
+	int wargc;
+    wchar_t** wargv = CommandLineToArgvW(GetCommandLineW(), &wargc);
+
+	std::string argvv = ToUtf8(wargv[argi+2]);
+	std::wstring argvv2 = wargv[argi+2];
+	std::ifstream		in(argvv2, std::fstream::binary);
 	if (!in) {
-		std::clog << "git-crypt: " << filename << ": unable to open for reading" << std::endl;
+		std::clog << "git-crypt: " << argvv << ": unable to open for reading" << std::endl;
 		return 1;
 	}
 	in.exceptions(std::fstream::badbit);
@@ -1124,8 +1153,7 @@ int unlock (int argc, const char** argv)
 	// 4. Check out the files that are currently encrypted.
 	// Git won't check out a file if its mtime hasn't changed, so touch every file first.
 	for (std::vector<std::string>::const_iterator file(encrypted_files.begin()); file != encrypted_files.end(); ++file) {
-		auto filename = utf8_to_gb(file->c_str()).c_str();
-		touch_file(filename);
+		touch_file(*file);
 	}
 	if (!git_checkout(encrypted_files)) {
 		std::clog << "Error: 'git checkout' failed" << std::endl;
@@ -1221,8 +1249,7 @@ int lock (int argc, const char** argv)
 	// Git won't check out a file if its mtime hasn't changed, so touch every file first.
 	for (std::vector<std::string>::const_iterator file(encrypted_files.begin()); file != encrypted_files.end(); ++file) {
 
-		auto filename = utf8_to_gb(file->c_str()).c_str();
-		touch_file(filename);
+		touch_file(*file);
 	}
 	if (!git_checkout(encrypted_files)) {
 		std::clog << "Error: 'git checkout' failed" << std::endl;
@@ -1657,7 +1684,6 @@ int status (int argc, const char** argv)
 		}
 		output >> std::ws;
 		std::getline(output, filename, '\0');
-		filename = utf8_to_gb(filename.c_str()).c_str();
 
 		// TODO: get file attributes en masse for efficiency... unfortunately this requires machine-parseable output from git check-attr to be workable, and this is only supported in Git 1.8.5 and above (released 27 Nov 2013)
 		const std::pair<std::string, std::string> file_attrs(get_file_attributes(filename));
@@ -1667,8 +1693,8 @@ int status (int argc, const char** argv)
 			const bool	blob_is_unencrypted = !object_id.empty() && !check_if_blob_is_encrypted(object_id);
 
 			if (fix_problems && blob_is_unencrypted) {
-				if (access(filename.c_str(), F_OK) != 0) {
-					std::clog << "Error: " << filename << ": cannot stage encrypted version because not present in working tree - please 'git rm' or 'git checkout' it" << std::endl;
+				if (_waccess(ToWString(filename).c_str(), F_OK) != 0) {
+					std::wclog << L"Error: " << ToWString(filename) << L": cannot stage encrypted version because not present in working tree - please 'git rm' or 'git checkout' it" << std::endl;
 					++nbr_of_fix_errors;
 				} else {
 					touch_file(filename);
@@ -1690,7 +1716,7 @@ int status (int argc, const char** argv)
 				}
 			} else if (!fix_problems && !show_unencrypted_only) {
 				// TODO: output the key name used to encrypt this file
-				std::cout << "    encrypted: " << filename;
+				std::wcout << L"    encrypted: " << ToWString(filename);
 				if (file_attrs.second != file_attrs.first) {
 					// but diff filter is not properly set
 					std::cout << " *** WARNING: diff=" << file_attrs.first << " attribute not set ***";
@@ -1706,7 +1732,7 @@ int status (int argc, const char** argv)
 		} else {
 			// File not encrypted
 			if (!fix_problems && !show_encrypted_only) {
-				std::cout << "not encrypted: " << filename << std::endl;
+				std::wcout << L"not encrypted: " << ToWString(filename) << std::endl;
 			}
 		}
 	}

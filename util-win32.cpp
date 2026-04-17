@@ -135,9 +135,22 @@ int exit_status (int status)
 	return status;
 }
 
-void	touch_file (const std::wstring& filename)
+static std::wstring ToWString(const std::string& utf8) {
+    if (utf8.empty()) return L"";
+    
+    // Pass utf8.data() and utf8.size() to be explicit
+    int len = MultiByteToWideChar(CP_UTF8, 0, utf8.data(), (int)utf8.size(), nullptr, 0);
+    if (len <= 0) return L"";
+
+    std::wstring wstr(len, 0);
+    MultiByteToWideChar(CP_UTF8, 0, utf8.data(), (int)utf8.size(), &wstr[0], len);
+    
+    return wstr;
+}
+
+void	touch_file (const std::string& filename)
 {
-	HANDLE	fh = CreateFileW(filename.c_str(), FILE_WRITE_ATTRIBUTES, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
+	HANDLE	fh = CreateFileW(ToWString(filename).c_str(), FILE_WRITE_ATTRIBUTES, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
 	if (fh == INVALID_HANDLE_VALUE) {
 		DWORD	error = GetLastError();
 		if (error == ERROR_FILE_NOT_FOUND) {
@@ -163,7 +176,7 @@ void	touch_file (const std::wstring& filename)
 
 void	remove_file (const std::string& filename)
 {
-	if (!DeleteFileA(filename.c_str())) {
+	if (!DeleteFileW(ToWString(filename).c_str())) {
 		DWORD	error = GetLastError();
 		if (error == ERROR_FILE_NOT_FOUND) {
 			return;

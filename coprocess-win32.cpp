@@ -80,15 +80,28 @@ static std::string format_cmdline (const std::vector<std::string>& command)
 	return cmdline;
 }
 
+static std::wstring ToWString(const std::string& utf8) {
+    if (utf8.empty()) return L"";
+    
+    // Pass utf8.data() and utf8.size() to be explicit
+    int len = MultiByteToWideChar(CP_UTF8, 0, utf8.data(), (int)utf8.size(), nullptr, 0);
+    if (len <= 0) return L"";
+
+    std::wstring wstr(len, 0);
+    MultiByteToWideChar(CP_UTF8, 0, utf8.data(), (int)utf8.size(), &wstr[0], len);
+    
+    return wstr;
+}
+
 static HANDLE spawn_command (const std::vector<std::string>& command, HANDLE stdin_handle, HANDLE stdout_handle, HANDLE stderr_handle)
 {
 	PROCESS_INFORMATION	proc_info;
 	ZeroMemory(&proc_info, sizeof(proc_info));
 
-	STARTUPINFO		start_info;
+	STARTUPINFOW		start_info;
 	ZeroMemory(&start_info, sizeof(start_info));
 
-	start_info.cb = sizeof(STARTUPINFO);
+	start_info.cb = sizeof(STARTUPINFOW);
 	start_info.hStdInput = stdin_handle ? stdin_handle : GetStdHandle(STD_INPUT_HANDLE);
 	start_info.hStdOutput = stdout_handle ? stdout_handle : GetStdHandle(STD_OUTPUT_HANDLE);
 	start_info.hStdError = stderr_handle ? stderr_handle : GetStdHandle(STD_ERROR_HANDLE);
@@ -96,8 +109,9 @@ static HANDLE spawn_command (const std::vector<std::string>& command, HANDLE std
 
 	std::string		cmdline(format_cmdline(command));
 
-	if (!CreateProcessA(nullptr,		// application name (nullptr to use command line)
-				const_cast<char*>(cmdline.c_str()),
+	auto wcmdline = ToWString(cmdline);
+	if (!CreateProcessW(nullptr,		// application name (nullptr to use command line)
+				const_cast<wchar_t*>(wcmdline.c_str()),
 				nullptr,	// process security attributes
 				nullptr,	// primary thread security attributes
 				TRUE,		// handles are inherited
